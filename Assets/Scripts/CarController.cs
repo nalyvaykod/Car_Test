@@ -12,7 +12,6 @@ public class CarController : MonoBehaviour
     {
         rb = this.GetComponent<Rigidbody>();
 
-
         if (rb == null)
         {
             Debug.LogError("Rigidbody is missing on this object.");
@@ -22,13 +21,12 @@ public class CarController : MonoBehaviour
         direction = direction.normalized;
     }
 
-
     void FixedUpdate()
     {
         if (isMoving)
         {
             rb.MovePosition(rb.position + direction * moveSpeed * Time.fixedDeltaTime);
-        }   
+        }
     }
 
     void OnMouseDown()
@@ -52,14 +50,22 @@ public class CarController : MonoBehaviour
         if (other.gameObject.CompareTag("Car"))
         {
             GameManager.Instance.LoseLife();
+            Destroy(gameObject);
+            GameManager.Instance.carsLeft--;
+            AudioManager.Instance.PlaySfx("Crash");
         }
         else if (other.gameObject.layer == LayerMask.NameToLayer("Boundary"))
         {
             GameManager.Instance.RegisterExit();
-
-            gameObject.SetActive(false);
+            Destroy(gameObject);
         }
 
         rb.MovePosition(rb.position - direction * 0.2f);
+    }
+
+    public void Init(Vector3 dir)
+    {
+        direction = dir.normalized;
+        transform.rotation = Quaternion.LookRotation(direction);
     }
 }

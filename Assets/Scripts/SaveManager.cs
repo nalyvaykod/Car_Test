@@ -5,22 +5,21 @@ using UnityEngine;
 public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance;
-    const string BEST_KEY = "BestTime", COIN_KEY = "Coins", LVL_KEY = "Level", MUSIC_KEY = "Music", SFX_KEY = "Sfx";
+    const string COIN_KEY = "Coins", LVL_KEY = "Level", MUSIC_KEY = "Music", SFX_KEY = "Sfx";
 
     void Awake()
     {
         if (Instance != null)
         {
-            Destroy(gameObject);
+            Destroy(gameObject); 
             return;
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        DontDestroyOnLoad(gameObject); 
     }
 
-    public float BestTime => PlayerPrefs.GetFloat(BEST_KEY, float.MaxValue);
-    public string BestTimePretty => BestTime == float.MaxValue ? "-" : $"{BestTime: 0.0}s";
+
     public int Coins => PlayerPrefs.GetInt(COIN_KEY, 0);
     public int CurrentLevel => PlayerPrefs.GetInt(LVL_KEY, 1);
 
@@ -39,12 +38,15 @@ public class SaveManager : MonoBehaviour
     public void LevelCompleted(int level, float time)
     {
         PlayerPrefs.SetInt(LVL_KEY, level + 1);
-        int coins = Coins + level * 5;
+        int coins = Coins;
         PlayerPrefs.SetInt(COIN_KEY, coins);
-        if (time < BestTime)
-        {
-            PlayerPrefs.SetFloat(BEST_KEY, time);
-        }
+    }
+
+    public void AddCoins(int amount)
+    {
+        int currentCoins = Coins;
+        int newAmount = currentCoins + amount;
+        PlayerPrefs.SetInt(COIN_KEY, newAmount);
     }
 
 }

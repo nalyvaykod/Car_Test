@@ -3,23 +3,57 @@ using UnityEngine;
 
 public class LevelGenerator : MonoBehaviour
 {
-    [SerializeField] private CarController carPrefab;
-    [SerializeField] private Vector2Int size = new(10, 6);
-    [SerializeField] private float cellSize = 2.5f;
-    [SerializeField] private int baseCars = 10;
+    public int baseCars = 8;
+    [SerializeField] private GameObject car;
+
+    private Vector2Int size = new(8, 8);
+    private float cellSize = 2f;
+    private float minimumDistance = 1.5f;
 
     public void Generate(int level)
     {
         var rnd = new System.Random(level * 137);
-        int carsToSpawn = baseCars + level * 2;
+
+        int carsToSpawn = baseCars;
+
+        Debug.Log("Total cars to spawn: " + carsToSpawn);
+
         List<Vector2Int> used = new();
+        List<Vector3> directions = new();
+
+        List<Vector2Int> availableCells = new List<Vector2Int>();
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                availableCells.Add(new Vector2Int(x, y));
+            }
+        }
 
         for (int i = 0; i < carsToSpawn; i++)
         {
-            Vector2Int cell;
-            do cell = new Vector2Int(rnd.Next(size.x), rnd.Next(size.y));
+            Vector2Int cell = Vector2Int.zero;
+            bool isPositionValid = false;
 
-            while (used.Contains(cell));
+            while (!isPositionValid && availableCells.Count > 0)
+            {
+                int index = rnd.Next(availableCells.Count);
+                cell = availableCells[index];
+                availableCells.RemoveAt(index);
+
+                isPositionValid = true;
+
+                foreach (var usedCell in used)
+                {
+                    if (Vector2Int.Distance(cell, usedCell) < minimumDistance)
+                    {
+                        isPositionValid = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!isPositionValid) continue;
 
             used.Add(cell);
 
@@ -28,17 +62,19 @@ public class LevelGenerator : MonoBehaviour
                 0,
                 (cell.y - size.y / 2f) * cellSize);
 
-            Vector3 dir = rnd.Next(4) switch
-            {
-                0 => Vector3.forward,
-                1 => Vector3.back,
-                2 => Vector3.left,
-                _ => Vector3.right
-            };
+            Direction dirEnum = (Direction)rnd.Next(4);  
+            Vector3 dir = DirectionToVector(dirEnum);  
 
-            var car = Instantiate(carPrefab, pos, Quaternion.identity, transform);
-            car.Init(dir);
+            directions.Add(dir);
+
+            var carObject = Instantiate(car, pos, Quaternion.identity, transform);
+            var carController = carObject.GetComponent<CarController>();
+
+            carController.Init(dir);
+
+            carObject.transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
         }
+
         GameManager.Instance.SetupLevel(level, carsToSpawn);
     }
 
@@ -48,5 +84,23 @@ public class LevelGenerator : MonoBehaviour
         Generate(lvl);
     }
 
+    private Vector3 DirectionToVector(Direction dir)
+    {
+        switch (dir)
+        {
+            case Direction.Forward: return Vector3.forward;
+            case Direction.Backward: return Vector3.back;
+            case Direction.Left: return Vector3.left;
+            case Direction.Right: return Vector3.right;
+            default: return Vector3.zero;
+        }
+    }
+}
 
+public enum Direction
+{
+    Forward = 0,
+    Backward = 1,
+    Left = 2,
+    Right = 3
 }
