@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
         if (Instance != null)
         {
             Destroy(gameObject);
+            return;
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
@@ -52,8 +53,36 @@ public class GameManager : MonoBehaviour
         if (lives <= 0) Lose();
     }
 
+    public void Pause(bool state)
+    {
+        InputLocked = state;
+        pausePanel.SetActive(state);
+        Time.timeScale = state ? 0 : 1;
+    }
+
+    public void RestartLevel() => SceneManager.LoadScene("Game");
+    public void LoadMenu() => SceneManager.LoadScene("MainMenu");
+
     void Win()
     {
-        
+        InputLocked = true;
+        AudioManager.Instance.PlaySfx("Win");
+        SaveManager.Instance.LevelCompleted(levelIndex, timer);
+        winPanel.SetActive(true);
+        coinTxt.text = $"+{levelIndex * 5}";
+    }
+
+    void Lose()
+    {
+        InputLocked = true;
+        AudioManager.Instance.PlaySfx("Lose");
+        losePanel.SetActive(true);
+    }
+
+    void RefreshUI()
+    {
+        livesTxt.text = $"{lives}";
+        levelTxt.text = $"{levelIndex}";
+        timerTxt.text = "0.0";
     }
 }
