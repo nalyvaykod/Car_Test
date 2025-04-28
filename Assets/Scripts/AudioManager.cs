@@ -33,16 +33,19 @@ public class AudioManager : MonoBehaviour
             _ => loseSfx
         };
         AudioSource.PlayClipAtPoint(clip, Vector3.zero);
+       
     }
 
-    void Start()
+    public void PlayMusic()
     {
-        
+        if (!musicSource.isPlaying)
+        {
+            musicSource.Play();
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    public void StopMusic()
     {
-        
+        musicSource.Stop();
     }
 }

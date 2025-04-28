@@ -39,9 +39,8 @@ public class GameManager : MonoBehaviour
         timerTxt.text = $"{timer: 0.0}";
     }
 
-    public void RegisterExit(CarController car)
+    public void RegisterExit()
     {
-        Destroy(car.gameObject);
         carsLeft--;
         if (carsLeft <= 0) Win();
     }
@@ -66,6 +65,7 @@ public class GameManager : MonoBehaviour
     void Win()
     {
         InputLocked = true;
+        AudioManager.Instance.StopMusic();
         AudioManager.Instance.PlaySfx("Win");
         SaveManager.Instance.LevelCompleted(levelIndex, timer);
         winPanel.SetActive(true);
@@ -75,6 +75,7 @@ public class GameManager : MonoBehaviour
     void Lose()
     {
         InputLocked = true;
+        AudioManager.Instance.StopMusic();
         AudioManager.Instance.PlaySfx("Lose");
         losePanel.SetActive(true);
     }

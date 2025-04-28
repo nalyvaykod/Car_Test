@@ -8,13 +8,20 @@ public class CarController : MonoBehaviour
     private bool isMoving;
     private Vector3 direction;
 
-    public void Init(Vector3 forward)
+    void Awake()
     {
-        direction = forward.normalized;
-        transform.forward = direction;
+        rb = this.GetComponent<Rigidbody>();
+
+
+        if (rb == null)
+        {
+            Debug.LogError("Rigidbody is missing on this object.");
+        }
+
+        direction = transform.forward;
+        direction = direction.normalized;
     }
 
-    void Awake() => rb = GetComponent<Rigidbody>();
 
     void FixedUpdate()
     {
@@ -24,7 +31,19 @@ public class CarController : MonoBehaviour
         }   
     }
 
-    void OnCollisionEnter(Collision other)
+    void OnMouseDown()
+    {
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("GameManager.Instance is null!");
+            return;
+        }
+
+        if (GameManager.Instance.InputLocked) return;
+        isMoving = true;
+    }
+
+    void OnTriggerEnter(Collider other)
     {
         if (!isMoving) return;
 
@@ -32,11 +51,13 @@ public class CarController : MonoBehaviour
 
         if (other.gameObject.CompareTag("Car"))
         {
-            //Will be lose of life
+            GameManager.Instance.LoseLife();
         }
         else if (other.gameObject.layer == LayerMask.NameToLayer("Boundary"))
         {
-            //Exit
+            GameManager.Instance.RegisterExit();
+
+            gameObject.SetActive(false);
         }
 
         rb.MovePosition(rb.position - direction * 0.2f);
