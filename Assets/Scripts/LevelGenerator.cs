@@ -10,6 +10,16 @@ public class LevelGenerator : MonoBehaviour
     private float cellSize = 2f;
     private float minimumDistance = 1.5f;
 
+
+    void Start()
+    {
+        int lvl = 1;
+        if (SaveManager.Instance != null)
+            lvl = SaveManager.Instance.CurrentLevel;
+
+        Generate(lvl);
+    }
+
     public void Generate(int level)
     {
         var rnd = new System.Random(level * 137);
@@ -78,11 +88,7 @@ public class LevelGenerator : MonoBehaviour
         GameManager.Instance.SetupLevel(level, carsToSpawn);
     }
 
-    void Start()
-    {
-        int lvl = SaveManager.Instance.CurrentLevel;
-        Generate(lvl);
-    }
+    
 
     private Vector3 DirectionToVector(Direction dir)
     {

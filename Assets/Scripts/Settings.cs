@@ -5,50 +5,67 @@ public class Settings : MonoBehaviour
 {
     public static Settings Instance;
 
-    public Slider musicSlider, sfxSlider;
-    [SerializeField] private GameObject MusicSliderGroup;
-    [SerializeField] private GameObject BackButton;
-    [SerializeField] private GameObject Title;
-    [SerializeField] private GameObject StartGame;
-    [SerializeField] private GameObject Setting;
+    [Header("UI")]
+    [SerializeField] private Slider musicSlider;
+    [SerializeField] private GameObject settingsPanel;
 
+    [Header("Behaviour")]
+    [SerializeField] private bool pauseGame = true;
 
-    void Awake()
+    private float cachedVol = -1f;
+
+    private void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
+        if (!settingsPanel) Debug.LogError("Settings: settingsPanel reference missing!");
+        if (!musicSlider) Debug.LogError("Settings: musicSlider reference missing!");
     }
 
-    void Start()
+    private void Start()
     {
         musicSlider.value = SaveManager.Instance.MusicVol;
+        musicSlider.onValueChanged.AddListener(OnMusicChanged);
     }
 
-    public void GoToSettings()
+    private void OnMusicChanged(float v)
     {
-        Title.SetActive(false);
-        StartGame.SetActive(false);
-        Setting.SetActive(false);
-        MusicSliderGroup.SetActive(true);
-        BackButton.SetActive(true);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetMusicVol(v);
+        else
+            cachedVol = v;
     }
 
-    public void BackToMenu()
+    private void LateUpdate()
     {
-        Title.SetActive(true);
-        StartGame.SetActive(true);
-        Setting.SetActive(true);
-        MusicSliderGroup.SetActive(false);
-        BackButton.SetActive(false);
+        if (cachedVol >= 0f && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMusicVol(cachedVol);
+            cachedVol = -1f;
+        }
     }
 
-    public void OnMusicChanged(float v)
+    public void OpenSettings()
     {
-        SaveManager.Instance.MusicVol = v;
-        AudioManager.Instance.SetMusicVol(v);  
+        settingsPanel?.SetActive(true);
+
+        if (pauseGame)
+        {
+            if (GameManager.Instance != null)
+                GameManager.Instance.InputLocked = true;  
+            Time.timeScale = 0f;
+        }
     }
+
+    public void CloseSettings()
+    {
+        settingsPanel?.SetActive(false);
+
+        if (pauseGame)
+        {
+            if (GameManager.Instance != null)
+                GameManager.Instance.InputLocked = false;
+            Time.timeScale = 1f;
+        }
+    }
+
 }

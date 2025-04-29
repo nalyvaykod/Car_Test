@@ -3,33 +3,31 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class CarController : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 8f;
+    [Header("Speed")]
+    [SerializeField] private float moveSpeed = 8f;      
+
     private Rigidbody rb;
     private bool isMoving;
-    private Vector3 direction;
+    private Vector3 direction;                       
 
-    void Awake()
+
+    private void Awake()
     {
-        rb = this.GetComponent<Rigidbody>();
-
+        rb = GetComponent<Rigidbody>();
         if (rb == null)
-        {
-            Debug.LogError("Rigidbody is missing on this object.");
-        }
+            Debug.LogError($"{name}: Rigidbody component is missing!");
 
-        direction = transform.forward;
-        direction = direction.normalized;
+        direction = transform.forward.normalized;
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         if (isMoving)
-        {
             rb.MovePosition(rb.position + direction * moveSpeed * Time.fixedDeltaTime);
-        }
     }
 
-    void OnMouseDown()
+
+    private void OnMouseDown()
     {
         if (GameManager.Instance == null)
         {
@@ -38,21 +36,24 @@ public class CarController : MonoBehaviour
         }
 
         if (GameManager.Instance.InputLocked) return;
+
         isMoving = true;
     }
 
-    void OnTriggerEnter(Collider other)
+
+    private void OnTriggerEnter(Collider other)
     {
         if (!isMoving) return;
 
-        isMoving = false;
+        isMoving = false;                   
 
-        if (other.gameObject.CompareTag("Car"))
+        if (other.CompareTag("Car"))
         {
+            GameManager.Instance.CarCrashed();
             GameManager.Instance.LoseLife();
+
+            AudioManager.Instance?.PlaySfx("Crash");
             Destroy(gameObject);
-            GameManager.Instance.carsLeft--;
-            AudioManager.Instance.PlaySfx("Crash");
         }
         else if (other.gameObject.layer == LayerMask.NameToLayer("Boundary"))
         {
@@ -62,6 +63,7 @@ public class CarController : MonoBehaviour
 
         rb.MovePosition(rb.position - direction * 0.2f);
     }
+
 
     public void Init(Vector3 dir)
     {

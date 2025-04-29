@@ -3,14 +3,17 @@ using UnityEngine.SceneManagement;
 
 public class RestartScene : MonoBehaviour
 {
+    private const string MAIN_MENU_SCENE = "MainMenu";
+
     public void RestartCurrentScene()
     {
-        string currentScene = SceneManager.GetActiveScene().name;
-        SceneManager.LoadScene(currentScene);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void GoToMainMenu()
     {
-        SceneManager.LoadScene("MainMenu");
+        SceneManager.LoadScene(MAIN_MENU_SCENE);
     }
+
+    
 }

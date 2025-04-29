@@ -2,67 +2,102 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+[DefaultExecutionOrder(-200)]
+[DisallowMultipleComponent]
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;
-    [SerializeField] private int startLives = 3;
-    [SerializeField] private Text livesTxt, timerTxt, levelTxt, coinTxt, winCoinsText, timeEndTxt;
-    [SerializeField] private GameObject winPanel, losePanel, pausePanel;
-    public int carsLeft;
-
-    private int lives, levelIndex;
-    private float timer;
-    public bool InputLocked { get; private set; }
-
-    void Awake()
+    private static GameManager _instance;
+    public static GameManager Instance
     {
-        if (Instance != null)
+        get
+        {
+            if (_instance == null)
+                _instance = FindObjectOfType<GameManager>();
+            return _instance;
+        }
+    }
+
+    [Header("Config")]
+    [SerializeField] private int startLives = 3;
+
+    [Header("UI")]
+    [SerializeField] private Text livesTxt;
+    [SerializeField] private Text timerTxt;
+    [SerializeField] private Text levelTxt;
+    [SerializeField] private Text coinTxt;
+    [SerializeField] private Text winCoinsText;
+    [SerializeField] private Text timeEndTxt;
+    [SerializeField] private GameObject winPanel;
+    [SerializeField] private GameObject losePanel;
+    [SerializeField] private GameObject pausePanel;
+    public int carsLeft { get; private set; }
+    public bool InputLocked { get; set; }
+    public float LevelTime => _timer;
+
+    private int _lives;
+    private int _levelIndex;
+    private float _timer;
+
+    private void Awake()
+    {
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        _instance = this;
+    }
+
+    private void OnEnable() => SceneManager.sceneLoaded += HandleSceneLoaded;
+    private void OnDisable() => SceneManager.sceneLoaded -= HandleSceneLoaded;
+
+    private void HandleSceneLoaded(Scene s, LoadSceneMode m) => CacheUiRefs();
+
+    private void Update()
+    {
+        _timer += Time.deltaTime;
+        if (timerTxt) timerTxt.text = $"{_timer:0.0}";
     }
 
     public void SetupLevel(int level, int totalCars)
     {
-        levelIndex = level;
+        CacheUiRefs();
+
+        _levelIndex = level;
         carsLeft = totalCars;
-        Debug.Log("Cars Left set to: " + carsLeft);
-        lives = startLives;
-        timer = 0f;
+        _lives = startLives;
+        _timer = 0f;
+
+        InputLocked = false;
+        Time.timeScale = 1f;
+        pausePanel?.SetActive(false);
+        AudioManager.Instance?.PlayMusic();
+
         SaveManager.Instance.AddCoins(-SaveManager.Instance.Coins);
         RefreshUI();
-    }
-
-    void Update()
-    {
-        timer += Time.deltaTime;
-        timerTxt.text = $"{timer: 0.0}";
     }
 
     public void RegisterExit()
     {
         carsLeft--;
-        int coinsEarned = levelIndex * 5;
-        SaveManager.Instance.AddCoins(coinsEarned);
-        coinTxt.text = $"{SaveManager.Instance.Coins}";
-        if (carsLeft <= 0)
-        {
-            Win();
-        }
+        SaveManager.Instance.AddCoins(_levelIndex * 5);
+        if (!coinTxt) CacheUiRefs();
+        if (coinTxt) coinTxt.text = $"{SaveManager.Instance.Coins}";
+
+        if (carsLeft <= 0) Win();
+    }
+
+    public void CarCrashed()
+    {
+        carsLeft--;
+        if (carsLeft <= 0) Lose();
     }
 
     public void LoseLife()
     {
-        lives--;
-        livesTxt.text = $"{lives}";
-
-        if (lives <= 0 || carsLeft <= 0)
-        {
-            Lose();
-        }
+        _lives--;
+        if (livesTxt) livesTxt.text = $"{_lives}";
+        if (_lives <= 0 || carsLeft <= 0) Lose();
     }
 
     public void Pause(bool state)
@@ -72,43 +107,66 @@ public class GameManager : MonoBehaviour
         Time.timeScale = state ? 0 : 1;
     }
 
-    public void RestartLevel() => SceneManager.LoadScene("Game");
+    public void RestartLevel() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     public void LoadMenu() => SceneManager.LoadScene("MainMenu");
 
-    void Win()
+    private void Win()
     {
-        Debug.Log("Win() called!");
+        CacheUiRefs();
+        if (!winPanel) { Debug.LogError("WinPanel not found!"); return; }
 
-        if (winPanel != null)
-        {
-            InputLocked = true;
-            AudioManager.Instance.StopMusic();
-            AudioManager.Instance.PlaySfx("Win");
+        InputLocked = true;
+        AudioManager.Instance?.StopMusic();
+        AudioManager.Instance?.PlaySfx("Win");
 
-            winPanel.SetActive(true);
-            winCoinsText.text = $"{SaveManager.Instance.Coins}";
-
-            timeEndTxt.text = $"{timer:0.0}s"; 
-        }
-        else
-        {
-            Debug.LogError("Win Panel is not assigned!");
-        }
+        winPanel.SetActive(true);
+        if (winCoinsText) winCoinsText.text = $"{SaveManager.Instance.Coins}";
+        if (timeEndTxt) timeEndTxt.text = $"{_timer:0.0}s";
     }
 
-    void Lose()
+    private void Lose()
     {
+        CacheUiRefs();
+        if (!losePanel) { Debug.LogError("LosePanel not found!"); return; }
+
         InputLocked = true;
-        AudioManager.Instance.StopMusic();
-        AudioManager.Instance.PlaySfx("Lose");
+        AudioManager.Instance?.StopMusic();
+        AudioManager.Instance?.PlaySfx("Lose");
+
         losePanel.SetActive(true);
     }
 
-    void RefreshUI()
+    private void RefreshUI()
     {
-        livesTxt.text = $"{lives}";
-        levelTxt.text = $"{levelIndex}";
-        timerTxt.text = "0.0";
-        coinTxt.text = $"{SaveManager.Instance.Coins}";
+        if (livesTxt) livesTxt.text = $"{_lives}";
+        if (levelTxt) levelTxt.text = $"{_levelIndex}";
+        if (timerTxt) timerTxt.text = "0.0";
+        if (coinTxt) coinTxt.text = $"{SaveManager.Instance.Coins}";
+    }
+
+    private static Transform FindDeep(Scene scene, string name)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            var t = root.transform.Find(name);   
+            if (t) return t;
+        }
+        return null;
+    }
+
+    private void CacheUiRefs()
+    {
+        Scene scene = SceneManager.GetActiveScene();
+
+        if (!livesTxt) livesTxt = FindDeep(scene, "LivesText")?.GetComponent<Text>();
+        if (!timerTxt) timerTxt = FindDeep(scene, "TimerText")?.GetComponent<Text>();
+        if (!levelTxt) levelTxt = FindDeep(scene, "LevelText")?.GetComponent<Text>();
+        if (!coinTxt) coinTxt = FindDeep(scene, "CoinText")?.GetComponent<Text>();
+        if (!winCoinsText) winCoinsText = FindDeep(scene, "WinCoinsText")?.GetComponent<Text>();
+        if (!timeEndTxt) timeEndTxt = FindDeep(scene, "TimeEndText")?.GetComponent<Text>();
+
+        if (!winPanel) winPanel = FindDeep(scene, "WinPanel")?.gameObject;
+        if (!losePanel) losePanel = FindDeep(scene, "LosePanel")?.gameObject;
+        if (!pausePanel) pausePanel = FindDeep(scene, "PausePanel")?.gameObject;
     }
 }
